@@ -8,8 +8,10 @@ from mininet.link import TCLink
 
 ## To run Ryu controllers,
 ## python .ryu/bin/ryu-manager --ofp-tcp-listen-port XXXX ryu/ryu/app/simple_switch_13.py
+## Controller A listens on port 6633, Controller B listens on port 6634
 
-## I BLATANTLY PLAGIARISED THIS FUNCTION. SUE ME. -G
+
+## I BLATANTLY PLAGIARISED THE BELOW FUNCTION. SUE ME. -G
 def int2dpid(dpid):
    try:
       dpid = hex(dpid)[2:]
@@ -26,7 +28,7 @@ def createNetworkTopology():
 
     net = Mininet(controller=RemoteController, link=TCLink)
 
-    info( '*** Adding controller\n' )
+    info( '*** Adding controllers\n' )
     cA = net.addController('cA', controller=RemoteController, ip="127.0.0.1", port=6633)
     cB = net.addController('cB', controller=RemoteController, ip="127.0.0.1", port=6634)
 
@@ -86,9 +88,9 @@ def createNetworkTopology():
     net.iperf(hosts=[AAh1, ABh1])
     net.iperf(hosts=[AAh1, BAh1])
     net.iperf(hosts=[AAh1, BBh1])
-    net.iperf(hosts=[ABh1, BAh1])
-    net.iperf(hosts=[ABh1, BBh1])
-    net.iperf(hosts=[BAh1, BBh1])
+    #net.iperf(hosts=[ABh1, BAh1])
+    #net.iperf(hosts=[ABh1, BBh1])
+    #net.iperf(hosts=[BAh1, BBh1])
 
     info('*** Running CLI\n')
     CLI(net)
