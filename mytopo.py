@@ -82,6 +82,14 @@ def createNetworkTopology():
     info('\n*** Running pingall\n')
     net.pingAll()
 
+    info('*** Running iperf\n')
+    net.iperf(hosts=[AAh1, ABh1])
+    net.iperf(hosts=[AAh1, BAh1])
+    net.iperf(hosts=[AAh1, BBh1])
+    net.iperf(hosts=[ABh1, BAh1])
+    net.iperf(hosts=[ABh1, BBh1])
+    net.iperf(hosts=[BAh1, BBh1])
+
     info('*** Running CLI\n')
     CLI(net)
 
