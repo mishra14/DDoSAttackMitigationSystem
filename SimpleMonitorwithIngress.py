@@ -13,7 +13,7 @@ import subprocess
 
 # Receiving requests and passing them to a controller method
 class RequestHandler(SocketServer.BaseRequestHandler):
-    s# Set to the handle method in the controller thread
+    # Set to the handle method in the controller thread
     handler = None
 
     def handle(self):
