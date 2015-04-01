@@ -1,0 +1,3 @@
+To run the controllers, just like last time - 
+ryu-manager --ofp-tcp-listen-port 6633 SimpleMonitorwithIngress1.py
+ryu-manager --ofp-tcp-listen-port 6634 SimpleMonitorwithIngress2.py
