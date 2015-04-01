@@ -10,7 +10,6 @@ import socket
 import threading
 import SocketServer
 import subprocess
-import csv
 import logging
 
 # Logging configuration
@@ -179,7 +178,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
         # Start client for sending pushbacks to the other server
         self.client = Client(ip_other, port_other)
-        self.iterCount = {"s2": 0, "s21": 0, "s22": 0}  # CSV STUFF
+
     # Handler receipt of a pushback message
     def handlePushbackMessage(self, data):
         victim = data.strip()[len("Pushback attack to "):]
@@ -248,8 +247,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
         if SimpleMonitor.REPORT_STATS:
             print "-------------- Flow stats for switch", switch, "---------------"
-        csvRates = {switch + "-eth1": 0, switch + "-eth2": 0, switch + "-eth3": 0}
-        self.iterCount[switch] += 1  # CSV STUFF
+
         # Iterate through all statistics reported for the flow
         for stat in sorted([flow for flow in body if flow.priority == 1],
                            key=lambda flow: (flow.match['in_port'],
@@ -269,7 +267,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             self.flow_byte_counts[key] = stat.byte_count
             if SimpleMonitor.REPORT_STATS:
                 print "In Port %8x Eth Dst %17s Out Port %8x Bitrate %f" % (in_port, eth_dst, out_port, rate)
-            csvRates[switch + "-eth" + str(in_port)] += rate  # CSV STUFF
+
             # Save the bandwith calculated for this flow
             self.rates[switch][in_port - 1][str(eth_dst)] = rate
 
@@ -281,10 +279,6 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                 victim = str(eth_dst)
                 if victim in domainHosts:  # if not in domain, ignore it. Will be handled by pushback requests.
                     victims.add(victim)
-
-        with open("/home/mininet/cis553-project2/" + str(switch) + ".csv", 'a') as csvfile:  # CSV Stuff
-            flowwriter = csv.writer(csvfile)
-            flowwriter.writerow([self.iterCount[switch], csvRates[switch + "-eth1"], csvRates[switch + "-eth2"], csvRates[switch + "-eth3"]])
 
         # Calculate no sustained attack counts
         for port in range(len(self.ingressApplied[switch])):
