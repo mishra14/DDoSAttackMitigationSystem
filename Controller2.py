@@ -77,8 +77,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # assume that the judgement on either "attack over"
     # "host under DDoS attack" is correct.
     SUSTAINED_COUNT = 5
-
-    ##### WRITE COMMENT
+    # Threshold of number of repeated polls to remove egress and apply ingress
     EGRESS_THRESHOLD = 20
     # Specifies if polled switch statistics should reported on stout
     REPORT_STATS = True
@@ -99,7 +98,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                                "s22": [False, False, False],
                                "s2": [False, False, False]}
 
-    # Sustained no attack count for switch/port combinations
+        # Sustained no attack count for switch/port combinations
         self.noAttackCounts = {"s1":  [0] * 3,
                                "s11": [0] * 3,
                                "s12": [0] * 3,
@@ -107,7 +106,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                                "s22": [0] * 3,
                                "s2":  [0] * 3}
 
-        # XXX Add comment
+        # Mapping from switch/port/destination MAC addresses to flow rates
         self.rates = {"s1": [{}, {}, {}], 
                       "s11": [{}, {}, {}], 
                       "s12": [{}, {}, {}], 
@@ -132,7 +131,8 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                  0x15: "s21",
                  0x16: "s22"}
 
-        ################################### WRITE COMMENTS
+        # Storing which switches egress has been applied to, along with a count
+        # and set of attackers which caused the egress
         self.egressApplied = {"s21": [False, set(), 0], 
                               "s22": [False, set(), 0] }
         # Flow datapaths identified by statistics polling
@@ -179,7 +179,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
         # Start client for sending pushbacks to the other server
         self.client = Client(ip_other, port_other)
-        self.iterCount = {"s2": 0, "s21": 0, "s22": 0}
+        self.iterCount = {"s2": 0, "s21": 0, "s22": 0}  # CSV STUFF
     # Handler receipt of a pushback message
     def handlePushbackMessage(self, data):
         victim = data.strip()[len("Pushback attack to "):]
@@ -195,7 +195,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 # Monitoring Code
 ###########################################
     # Handler for registering new datapaths
-    # Taken from XXX add source
+    # Taken from http://osrg.github.io/ryu-book/en/html/traffic_monitor.html
     @set_ev_cls(ofp_event.EventOFPStateChange,
                 [MAIN_DISPATCHER, DEAD_DISPATCHER])
     def _state_change_handler(self, ev):
@@ -219,7 +219,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             hub.sleep(SimpleMonitor.QUERY_INTERVAL)
 
     # Helper function for polling statistics of a datapath
-    # Again, taken from XXX
+    # Again, taken from http://osrg.github.io/ryu-book/en/html/traffic_monitor.html
     def _request_stats(self, datapath):
         #logging.debug('send stats request: %016x', datapath.id)
         ofproto = datapath.ofproto
@@ -249,7 +249,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         if SimpleMonitor.REPORT_STATS:
             print "-------------- Flow stats for switch", switch, "---------------"
         csvRates = {switch + "-eth1": 0, switch + "-eth2": 0, switch + "-eth3": 0}
-        self.iterCount[switch] += 1
+        self.iterCount[switch] += 1  # CSV STUFF
         # Iterate through all statistics reported for the flow
         for stat in sorted([flow for flow in body if flow.priority == 1],
                            key=lambda flow: (flow.match['in_port'],
@@ -269,7 +269,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             self.flow_byte_counts[key] = stat.byte_count
             if SimpleMonitor.REPORT_STATS:
                 print "In Port %8x Eth Dst %17s Out Port %8x Bitrate %f" % (in_port, eth_dst, out_port, rate)
-            csvRates[switch + "-eth" + str(in_port)] += rate
+            csvRates[switch + "-eth" + str(in_port)] += rate  # CSV STUFF
             # Save the bandwith calculated for this flow
             self.rates[switch][in_port - 1][str(eth_dst)] = rate
 
@@ -279,10 +279,10 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             if rate > SimpleMonitor.ATTACK_THRESHOLD:
                 self.noAttackCounts[switch][in_port - 1] = 0
                 victim = str(eth_dst)
-                if victim in domainHosts:  # if not in domain, ignore it. wait for a pushback request if it's that important
+                if victim in domainHosts:  # if not in domain, ignore it. Will be handled by pushback requests.
                     victims.add(victim)
 
-        with open("/home/mininet/cis553-project2/" + str(switch) + ".csv", 'a') as csvfile:
+        with open("/home/mininet/cis553-project2/" + str(switch) + ".csv", 'a') as csvfile:  # CSV Stuff
             flowwriter = csv.writer(csvfile)
             flowwriter.writerow([self.iterCount[switch], csvRates[switch + "-eth1"], csvRates[switch + "-eth2"], csvRates[switch + "-eth3"]])
 
@@ -349,11 +349,6 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                 logging.info("Responding to pushback request, applying egress on %s" % attackerSwitch)
                 self.applyEgress(victimAttacker)
             
-            # logging.info("Responding to pushback request, applying ingress on %s to relieve %s" % (victimAttackers, victim))
-            # Apply an ingress policy to each attacker
-            # for attacker in victimAttackers:
-            #     self.applyIngress(attacker)
-
     # Identify the set of victims attacked by hosts located in the other domain
     # and directly apply policies to the attackers in the local domain
     def dealWithAttackers(self, victims):
@@ -374,20 +369,17 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         
         # Increase the count for confidence in a suspected attack
         # by the identifed attacker set if applicable
-        if attackers == self.attackers and len(attackers) > 0:
+        if len(attackers) > 0:
             self.sustainedAttacks += 1
-            logging.debug("Sustained Attack Count %s" % self.sustainedAttacks)
-
-        else:
-            # self.sustainedAttacks = 0 XXX Keep?
-            self.attackers = attackers
+            logging.debug("Sustained Attack Count %s" % self.sustainedAttacks / 3)
+        elif len(attackers) == 0:
+            self.sustainedAttacks = 0        
 
         # If we have exceeded the confidence count for the local attacker
         # set, apply ingress policies to all attackers
-        if self.sustainedAttacks > SimpleMonitor.SUSTAINED_COUNT:
+        if self.sustainedAttacks / 3> SimpleMonitor.SUSTAINED_COUNT:
             for attacker in self.attackers:
                 self.applyIngress(attacker)
-
         return pushbacks
         
     # Check if the ingress policy should be removed for any port
@@ -403,7 +395,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                 if self.noAttackCounts[switch][port] >= self.SUSTAINED_COUNT and self.ingressApplied[switch][port]:
                     self.removeIngress(self.portMaps[switch][port])
 
-    # 
+    # Apply ingress to a given attacker's switch/port
     def applyIngress(self, attacker, shouldApply=True):
         attackerSwitch, attackerPort = self.getSwitch(attacker)
         if self.ingressApplied[attackerSwitch][int(attackerPort) - 1] == shouldApply:
@@ -421,26 +413,26 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         subprocess.call(["sudo", "ovs-vsctl", "set", "interface", attackerSwitch + "-eth" + attackerPort, ingressPolicingRate])
         self.ingressApplied[attackerSwitch][int(attackerPort) - 1] = shouldApply
 
+    # Remove ingress on a given attacker's switch/port
     def removeIngress(self, attacker):
         self.applyIngress(attacker, False)
 
+    # Apply egress to the attacker's switch's outgoing port (connected to s2)
     def applyEgress(self, attacker):
         attackerSwitch, attackerPort = self.getSwitch(attacker)
         self.egressApplied[attackerSwitch][1].add(self.portMaps[attackerSwitch][int(attackerPort) - 1])
         if self.egressApplied[attackerSwitch][0]:
             return
 
-        # egressCommand = ["sudo", "ovs-vsctl", "-O", "openflow13", "--", "set", "Port", attackerSwitch + "-eth3", "qos=@newqos", "--",
-        #  "--id=@newqos", "create", "QoS", "type=linux-htb", "queues=0=@q0", "--", "--id=@q0", "create", "Queue",
-        #  "other-config:max-rate=40000"]
         egressCommand = ["sudo", "ovs-vsctl", "--", "set", "Port", attackerSwitch + "-eth3", "qos=@newqos", "--",
          "--id=@newqos", "create", "QoS", "type=linux-htb", "queues=0=@q0", "--", "--id=@q0", "create", "Queue",
          "other-config:max-rate=40000"]
         subprocess.call(egressCommand)
         self.egressApplied[attackerSwitch][0] = True
         self.egressApplied[attackerSwitch][2] = 0
-        print self.egressApplied
 
+    # Removes egress to the attacker's switch's outgoing port, and also calls 
+    # applyIngress(attacker) to immediately apply ingress to that attacker
     def removeEgress(self, attackerSwitch):
         if not self.egressApplied[attackerSwitch]:
             return
@@ -449,34 +441,23 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         self.egressApplied[attackerSwitch][0] = False
         self.egressApplied[attackerSwitch][2] = 0
         for attacker in self.egressApplied[attackerSwitch][1]:
-            self.applyIngress(attacker, shouldApply=True)
+            self.applyIngress(attacker)
         self.egressApplied[attackerSwitch][1] = set()
-       
 
-
-
-    @staticmethod
-    def getVictim(victim):
-
+    # Gets the victim's switch and port it is connected to
+    def getVictim(self, victim):
         victimHost = victim[1].upper() + victim[4].upper() + "h" + victim[16]
-        victimSwitch = "s"
-        if victimHost[0] == "A":
-            victimSwitch += "1"
-        else:
-            victimSwitch += "2"
-        if victimHost[1] == "A":
-            victimSwitch += "1"
-        else:
-            victimSwitch += "2"
-        victimPort = victimHost[3]
-        
-        return victimHost, victimSwitch, victimPort
+        for switch in self.portMaps:
+            for port in range(len(self.portMaps[switch])):
+                if self.portMaps[switch][port] == victimHost:
+                    return victimHost, switch, str(port + 1)
 
+    # Gets the local attackers of a victim
     def getAttackers(self, victim):
         attackers = set()
         for switch in self.rates:
             for port in range(len(self.rates[switch])):
-                if victim not in self.rates[switch][port]:  # Not sure if it will ever be the case
+                if victim not in self.rates[switch][port]:
                     continue
                 if self.rates[switch][port][victim] > SimpleMonitor.ATTACK_THRESHOLD:
                     attacker = self.portMaps[switch][port]
@@ -489,17 +470,10 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     def isSwitch(victim):
         return victim[0] == "s"
 
-    @staticmethod
-    def getSwitch(node):
-        portMaps = {"s1": ["s11", "s12", "s2"],
-                    "s11": ["AAh1", "AAh2", "s1"],
-                    "s12": ["ABh1", "ABh2", "s1"],
-                    "s21": ["BAh1", "BAh2", "s2"],
-                    "s22": ["BBh1", "BBh2", "s2"],
-                    "s2": ["s21", "s22", "s1"]}
-        for switch in portMaps:
-            if node in portMaps[switch]:
-                return switch, str(portMaps[switch].index(node) + 1)
+    def getSwitch(self, node):
+        for switch in self.portMaps:
+            if node in self.portMaps[switch]:
+                return switch, str(self.portMaps[switch].index(node) + 1)
 
     # Convert from byte count delta to bitrate
     @staticmethod
