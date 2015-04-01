@@ -5,11 +5,6 @@ from mininet.node import Controller, RemoteController
 from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 
-## To run Ryu controllers,
-## python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6633/6634 ryu/ryu/app/simple_switch_13.py
-## Controller A listens on port 6633, Controller B listens on port 6634
-
-
 def createNetworkTopology():
 
     #Create a network and add nodes to it
@@ -71,10 +66,6 @@ def createNetworkTopology():
 
     info('\n*** Running pingall\n')
     net.pingAll()
-
-    # net.iperf(hosts=[AAh1, ABh1])
-    # net.iperf(hosts=[AAh1, BAh1])
-    # net.iperf(hosts=[AAh1, BBh1])
 
     info('*** Running CLI\n')
     CLI(net)
