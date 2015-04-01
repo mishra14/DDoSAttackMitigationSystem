@@ -10,7 +10,7 @@ import socket
 import threading
 import SocketServer
 import subprocess
-
+import csv
 import logging
 
 # Logging configuration
@@ -179,7 +179,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
         # Start client for sending pushbacks to the other server
         self.client = Client(ip_other, port_other)
-
+        self.iterCount = {"s2": 0, "s21": 0, "s22": 0}
     # Handler receipt of a pushback message
     def handlePushbackMessage(self, data):
         victim = data.strip()[len("Pushback attack to "):]
@@ -236,7 +236,6 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
         
-        #domainHosts = ['0a:0a:00:00:00:01', '0a:0a:00:00:00:02', '0a:0b:00:00:00:01', '0a:0b:00:00:00:02']
         domainHosts = ['0b:0a:00:00:00:01', '0b:0a:00:00:00:02', '0b:0b:00:00:00:01', '0b:0b:00:00:00:02']
         
         # The (suspected) set of victims identified by the statistics
@@ -249,7 +248,8 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
         if SimpleMonitor.REPORT_STATS:
             print "-------------- Flow stats for switch", switch, "---------------"
-
+        csvRates = {switch + "-eth1": 0, switch + "-eth2": 0, switch + "-eth3": 0}
+        self.iterCount[switch] += 1
         # Iterate through all statistics reported for the flow
         for stat in sorted([flow for flow in body if flow.priority == 1],
                            key=lambda flow: (flow.match['in_port'],
@@ -269,7 +269,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             self.flow_byte_counts[key] = stat.byte_count
             if SimpleMonitor.REPORT_STATS:
                 print "In Port %8x Eth Dst %17s Out Port %8x Bitrate %f" % (in_port, eth_dst, out_port, rate)
-
+            cvsRates[switch + "-eth" + str(in_port)] += rate
             # Save the bandwith calculated for this flow
             self.rates[switch][in_port - 1][str(eth_dst)] = rate
 
@@ -281,6 +281,10 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                 victim = str(eth_dst)
                 if victim in domainHosts:  # if not in domain, ignore it. wait for a pushback request if it's that important
                     victims.add(victim)
+
+        with open("/home/mininet/cis553-project2/" + str(switch) + ".csv", 'a') as csvfile:
+            flowwriter = csv.writer(csvfile)
+            flowwriter.writerow([self.iterCount[switch], csvRates[switch + "-eth1"], csvRates[switch + "-eth2"], csvRates[switch + "-eth3"]])
 
         # Calculate no sustained attack counts
         for port in range(len(self.ingressApplied[switch])):
