@@ -77,9 +77,11 @@ def createNetworkTopology():
     # net.iperf(hosts=[AAh1, BAh1])
     # net.iperf(hosts=[AAh1, BBh1])
 
-    info('*** Running CLI\n')
-    CLI(net)
-
+    #info('*** Running CLI\n')
+    #CLI(net)
+    info('*** Running DDos\n')
+    ABh1.cmd("hping3 --flood --udp 10.1.1.1 &")
+    BAh1.cmd("hping3 --flood --udp 10.1.1.1 ")
     info('*** Stopping network')
     net.stop()
 
