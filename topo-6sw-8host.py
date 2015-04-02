@@ -1,79 +1,70 @@
-# #!/usr/bin/python
+#!/usr/bin/python
 
-# from mininet.topo import Topo
-# from mininet.net import Mininet
-# from mininet.node import CPULimitedHost
-# from mininet.link import TCLink
-# from mininet.util import dumpNodeConnections
-# from mininet.log import setLogLevel
+from mininet.net import Mininet
+from mininet.node import Controller
+from mininet.cli import CLI
+from mininet.log import setLogLevel, info
+from mininet.link import TCLink
 
-# class SingleSwitchTopo(Topo):
-#     "Single switch connected to n hosts."
-#     def build(self, n=2):
-#         switch = self.addSwitch('s1')
-#         for h in range(n):
-#             # Each host gets 50%/n of system CPU
-#             host = self.addHost('h%s' % (h + 1),cpu=.5/n)
-#             # 10 Mbps, 5ms delay, 10% loss, 1000 packet queue
-#             self.addLink(host, switch,bw=10, delay='5ms', loss=10, max_queue_size=1000, use_htb=True)
+def createNetworkTopology():
 
-# if __name__ == '__main__':
-#     setLogLevel('info')
-#     a = SingleSwitchTopo(n=5)
+    "Create a network and add nodes to it."
 
-"""Custom topology example
+    net = Mininet( controller=Controller, link=TCLink )
 
-Two directly connected switches plus a host for each switch:
+    info( '*** Adding controller\n' )
+    net.addController( 'c1' )
+    net.addController( 'c2' )
 
-   host --- switch --- switch --- host
+    info( '*** Adding hosts\n' )
+    AAh1 = net.addHost( 'AAh1' ,ip='10.1.1.1')
+    AAh2 = net.addHost( 'AAh2' ,ip='10.1.1.2')
+    ABh1 = net.addHost( 'ABh1' ,ip='10.1.2.1')
+    ABh2 = net.addHost( 'ABh2' ,ip='10.1.2.2')
+    BAh1 = net.addHost( 'BAh1' ,ip='10.10.10.1')
+    BAh2 = net.addHost( 'BAh2' ,ip='10.10.10.2')
+    BBh1 = net.addHost( 'BBh1' ,ip='10.10.20.1')
+    BBh2 = net.addHost( 'BBh2' ,ip='10.10.20.2')
 
-Adding the 'topos' dict with a key/value pair to generate our newly defined
-topology enables one to pass in '--topo=mytopo' from the command line.
-"""
+    info( '*** Adding switches\n' )
+    sA = net.addSwitch( 's1' )
+    sAA = net.addSwitch( 's11' )
+    sAB = net.addSwitch( 's12' )
+    sB = net.addSwitch( 's2' )
+    sBA = net.addSwitch( 's21' )
+    sBB = net.addSwitch( 's22' )
+    
+    info( '*** Adding links\n' )
+    net.addLink(AAh1,sAA,bw=2, delay='2ms',max_queue_size=5)
+    net.addLink(AAh2,sAA,bw=2, delay='2ms',max_queue_size=5)
+    
+    net.addLink(ABh1,sAB,bw=2, delay='2ms',max_queue_size=5)
+    net.addLink(ABh2,sAB,bw=2, delay='2ms',max_queue_size=5)
+    
+    net.addLink(BAh1,sBA,bw=2, delay='2ms',max_queue_size=5)
+    net.addLink(BAh2,sBA,bw=2, delay='2ms',max_queue_size=5)
+    
+    net.addLink(BBh1,sBB,bw=2, delay='2ms',max_queue_size=5)
+    net.addLink(BBh2,sBB,bw=2, delay='2ms',max_queue_size=5)
 
-from mininet.topo import Topo
-
-class MyTopo( Topo ):
-    "Simple topology example."
-    def __init__( self ):
-        "Create custom topo."
-        # Initialize topology
-        Topo.__init__( self )
-        # Add hosts and switches
-        AAh1 = self.addHost( 'AAh1' )
-        AAh2 = self.addHost( 'AAh2' )
-        ABh1 = self.addHost( 'ABh1' )
-        ABh2 = self.addHost( 'ABh2' )
-        BAh1 = self.addHost( 'BAh1' )
-        BAh2 = self.addHost( 'BAh2' )
-        BBh1 = self.addHost( 'BBh1' )
-        BBh2 = self.addHost( 'BBh2' )
-        sA = self.addSwitch( 's1' )
-        sAA = self.addSwitch( 's11' )
-        sAB = self.addSwitch( 's12' )
-        sB = self.addSwitch( 's2' )
-        sBA = self.addSwitch( 's21' )
-        sBB = self.addSwitch( 's22' )
-        # Add links
-        self.addLink(AAh1,sAA,bw=2, delay='2ms',max_queue_size=5)
-        self.addLink(AAh2,sAA,bw=2, delay='2ms',max_queue_size=5)
-        
-        self.addLink(ABh1,sAB,bw=2, delay='2ms',max_queue_size=5)
-        self.addLink(ABh2,sAB,bw=2, delay='2ms',max_queue_size=5)
-        
-        self.addLink(BAh1,sBA,bw=2, delay='2ms',max_queue_size=5)
-        self.addLink(BAh2,sBA,bw=2, delay='2ms',max_queue_size=5)
-        
-        self.addLink(BBh1,sBB,bw=2, delay='2ms',max_queue_size=5)
-        self.addLink(BBh2,sBB,bw=2, delay='2ms',max_queue_size=5)
-
-        self.addLink(sAA,sA, bw=5, delay='1ms',max_queue_size=10)
-        self.addLink(sAB,sA, bw=5, delay='1ms',max_queue_size=10)
-        
-        self.addLink(sBA,sB, bw=5, delay='1ms',max_queue_size=10)
-        self.addLink(sBB,sB, bw=5, delay='1ms',max_queue_size=10)
-        
-        self.addLink(sA,sB,bw=10, delay='0ms',max_queue_size=20)
+    net.addLink(sAA,sA, bw=5, delay='1ms',max_queue_size=10)
+    net.addLink(sAB,sA, bw=5, delay='1ms',max_queue_size=10)
+    
+    net.addLink(sBA,sB, bw=5, delay='1ms',max_queue_size=10)
+    net.addLink(sBB,sB, bw=5, delay='1ms',max_queue_size=10)
+    
+    net.addLink(sA,sB,bw=10, delay='0ms',max_queue_size=20)
 
 
-topos = { 'mytopo': ( lambda: MyTopo() ) }
+    info( '*** Starting network\n')
+    net.start()
+
+    info( '*** Running CLI\n' )
+    CLI( net )
+
+    info( '*** Stopping network' )
+    net.stop()
+
+if __name__ == '__main__':
+    setLogLevel( 'info' )
+    createNetworkTopology()
