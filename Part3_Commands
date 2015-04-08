@@ -207,3 +207,86 @@ TCP window size: 91.9 KByte (default)
 [ ID] Interval       Transfer     Bandwidth
 [  3]  0.0-10.0 sec  2.59 GBytes  2.22 Gbits/sec
 
+
+################
+# QOS
+################
+
+2. See above
+
+3.
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl -- set Port s1-eth3 qos=@newqos \
+> -- --id=@newqos create QoS type=linux-htb queues=0=@q0 \
+> -- --id=@q0   create   Queue other-config:max-rate=50000
+ba4cccdc-13f2-45fc-8edc-f866ee4ca153
+b1d4d956-9928-47b2-b579-115a4f176740
+
+
+4.
+
+
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl list qos
+_uuid               : ba4cccdc-13f2-45fc-8edc-f866ee4ca153
+external_ids        : {}
+other_config        : {}
+queues              : {0=b1d4d956-9928-47b2-b579-115a4f176740}
+type                : linux-htb
+
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl list queue b1d4d956-9928-47b2-b579-115a4f176740
+_uuid               : b1d4d956-9928-47b2-b579-115a4f176740
+dscp                : []
+external_ids        : {}
+other_config        : {max-rate="50000"}
+
+4c ??????????????????????????????
+
+probably
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-ofctl dump-flows s1
+NXST_FLOW reply (xid=0x4):
+ cookie=0x0, duration=7814.126s, table=0, n_packets=15581, n_bytes=2984273, idle_age=1, priority=0 actions=CONTROLLER:65535
+ cookie=0x0, duration=7531.650s, table=0, n_packets=206851, n_bytes=7081144222, idle_age=4393, priority=1,in_port=1,dl_dst=26:0b:00:88:55:6e actions=output:3
+ cookie=0x0, duration=6969.802s, table=0, n_packets=100362, n_bytes=6635660, idle_age=4393, priority=1,in_port=3,dl_dst=0a:0a:00:00:00:01 actions=output:1
+ cookie=0x0, duration=6569.262s, table=0, n_packets=2, n_bytes=116, idle_age=6564, priority=1,in_port=1,dl_dst=2a:83:a0:fc:3e:38 actions=output:3
+
+
+5.
+
+sudo ovs-ofctl add-flow s1 in_port=1,dl_src=0a:0a:00:00:00:01,dl_dst=26:0b:00:88:55:6e,actions=set_queue:0,normal
+
+
+6.
+
+mininet> AAh1 iperf -c BAh1
+------------------------------------------------------------
+Client connecting to 10.10.10.1, TCP port 5001
+TCP window size: 85.3 KByte (default)
+------------------------------------------------------------
+[  3] local 10.1.1.1 port 58209 connected with 10.10.10.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-36.0 sec   384 KBytes  87.4 Kbits/sec
+
+7.
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl -- clear port s1-eth3 qos
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl -- --all destroy QoS -- --all destroy Queue
+
+8.
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl list qos
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl list queue
+
+---- Iperf after deletion
+
+mininet> AAh1 iperf -c BAh1
+------------------------------------------------------------
+Client connecting to 10.10.10.1, TCP port 5001
+TCP window size: 85.3 KByte (default)
+------------------------------------------------------------
+[  3] local 10.1.1.1 port 58210 connected with 10.10.10.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.0 sec  3.84 GBytes  3.30 Gbits/sec
+
