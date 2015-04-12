@@ -15,7 +15,8 @@ def createNetworkTopology():
 
     #"Create a network and add nodes to it."
 
-    net = Mininet(controller=RemoteController, link=TCLink)
+    #net = Mininet(controller=RemoteController, link=TCLink)
+    net = Mininet(controller=RemoteController)
 
     info( '*** Adding controllers\n' )
     cA = net.addController('cA', controller=RemoteController, ip="127.0.0.1", port=6633)
@@ -39,26 +40,47 @@ def createNetworkTopology():
     sBA = net.addSwitch( 's21', dpid='0000000000000015' )
     sBB = net.addSwitch( 's22', dpid='0000000000000016' )
     
-    info( '*** Adding links\n' )
-    net.addLink(AAh1,sAA,bw=2, delay='2ms',max_queue_size=5)
-    net.addLink(AAh2,sAA,bw=2, delay='2ms',max_queue_size=5)
+    # Commented out for MS2
+    #info( '*** Adding links\n' )
+    #net.addLink(AAh1,sAA,bw=2, delay='2ms',max_queue_size=5)
+    #net.addLink(AAh2,sAA,bw=2, delay='2ms',max_queue_size=5)
     
-    net.addLink(ABh1,sAB,bw=2, delay='2ms',max_queue_size=5)
-    net.addLink(ABh2,sAB,bw=2, delay='2ms',max_queue_size=5)
+    #net.addLink(ABh1,sAB,bw=2, delay='2ms',max_queue_size=5)
+    #net.addLink(ABh2,sAB,bw=2, delay='2ms',max_queue_size=5)
     
-    net.addLink(BAh1,sBA,bw=2, delay='2ms',max_queue_size=5)
-    net.addLink(BAh2,sBA,bw=2, delay='2ms',max_queue_size=5)
+    #net.addLink(BAh1,sBA,bw=2, delay='2ms',max_queue_size=5)
+    #net.addLink(BAh2,sBA,bw=2, delay='2ms',max_queue_size=5)
     
-    net.addLink(BBh1,sBB,bw=2, delay='2ms',max_queue_size=5)
-    net.addLink(BBh2,sBB,bw=2, delay='2ms',max_queue_size=5)
+    #net.addLink(BBh1,sBB,bw=2, delay='2ms',max_queue_size=5)
+    #net.addLink(BBh2,sBB,bw=2, delay='2ms',max_queue_size=5)
 
-    net.addLink(sAA,sA, bw=5, delay='1ms',max_queue_size=10)
-    net.addLink(sAB,sA, bw=5, delay='1ms',max_queue_size=10)
+    #net.addLink(sAA,sA, bw=5, delay='1ms',max_queue_size=10)
+    #net.addLink(sAB,sA, bw=5, delay='1ms',max_queue_size=10)
     
-    net.addLink(sBA,sB, bw=5, delay='1ms',max_queue_size=10)
-    net.addLink(sBB,sB, bw=5, delay='1ms',max_queue_size=10)
+    #net.addLink(sBA,sB, bw=5, delay='1ms',max_queue_size=10)
+    #net.addLink(sBB,sB, bw=5, delay='1ms',max_queue_size=10)
     
-    net.addLink(sA,sB,bw=10, delay='0ms',max_queue_size=20)
+    #net.addLink(sA,sB,bw=10, delay='0ms',max_queue_size=20)
+
+    net.addLink(AAh1,sAA)
+    net.addLink(AAh2,sAA)
+    
+    net.addLink(ABh1,sAB)
+    net.addLink(ABh2,sAB)
+    
+    net.addLink(BAh1,sBA)
+    net.addLink(BAh2,sBA)
+    
+    net.addLink(BBh1,sBB)
+    net.addLink(BBh2,sBB)
+
+    net.addLink(sAA,sA)
+    net.addLink(sAB,sA)
+    
+    net.addLink(sBA,sB)
+    net.addLink(sBB,sB)
+    
+    net.addLink(sA,sB)
 
 
     info('*** Starting network\n')
@@ -70,13 +92,14 @@ def createNetworkTopology():
     sBA.start([cB])
     sBB.start([cB])
 
+    # Commented out for MS2
     info('\n*** Running pingall\n')
-    net.pingAll()
+    #net.pingAll()
 
-    info('***  Running iperf\n')
-    net.iperf(hosts=[AAh1, ABh1])
-    net.iperf(hosts=[AAh1, BAh1])
-    net.iperf(hosts=[AAh1, BBh1])
+    #info('***  Running iperf\n')
+    #net.iperf(hosts=[AAh1, ABh1])
+    #net.iperf(hosts=[AAh1, BAh1])
+    #net.iperf(hosts=[AAh1, BBh1])
 
     info('*** Running CLI\n')
     CLI(net)

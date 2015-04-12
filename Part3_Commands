@@ -1,0 +1,292 @@
+# COMMANDS for Part 3
+
+
+##### DROP FLOW
+
+2. Selected hosts AAh1 and BAh1 and switch (well..) s1
+3a. s1 flows before ping
+
+cis455@adminuser-VirtualBox:~$ sudo ovs-ofctl -O Openflow13 dump-flows s1
+OFPST_FLOW reply (OF1.3) (xid=0x2):
+ cookie=0x0, duration=260.950s, table=0, n_packets=995, n_bytes=189050, priority=0 actions=CONTROLLER:65535
+
+3.
+
+mininet> AAh1 ping BAh1
+PING 10.10.10.1 (10.10.10.1) 56(84) bytes of data.
+64 bytes from 10.10.10.1: icmp_seq=1 ttl=64 time=148 ms
+64 bytes from 10.10.10.1: icmp_seq=2 ttl=64 time=1.77 ms
+64 bytes from 10.10.10.1: icmp_seq=3 ttl=64 time=0.257 ms
+64 bytes from 10.10.10.1: icmp_seq=4 ttl=64 time=0.278 ms
+^C
+--- 10.10.10.1 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3004ms
+rtt min/avg/max/mdev = 0.257/37.675/148.396/63.927 ms
+
+4.
+
+cis455@adminuser-VirtualBox:~$ sudo ovs-ofctl -O Openflow13 dump-flows s1
+OFPST_FLOW reply (OF1.3) (xid=0x2):
+ cookie=0x0, duration=293.236s, table=0, n_packets=1003, n_bytes=189767, priority=0 actions=CONTROLLER:65535
+ cookie=0x0, duration=10.760s, table=0, n_packets=6, n_bytes=532, priority=1,in_port=1,dl_dst=26:0b:00:88:55:6e actions=output:3
+ cookie=0x0, duration=10.799s, table=0, n_packets=7, n_bytes=574, priority=1,in_port=3,dl_dst=0a:0a:00:00:00:01 actions=output:1
+
+
+
+5.
+
+cis455@adminuser-VirtualBox:~$ sudo ovs-ofctl -O Openflow13 add-flow s1 in_port=3,dl_dst=0a:0a:00:00:00:01,priority=2,actions=drop
+
+6.
+
+cis455@adminuser-VirtualBox:~$ sudo ovs-ofctl -O Openflow13 dump-flows s1
+OFPST_FLOW reply (OF1.3) (xid=0x2):
+ cookie=0x0, duration=349.051s, table=0, n_packets=1008, n_bytes=190302, priority=0 actions=CONTROLLER:65535
+ cookie=0x0, duration=66.575s, table=0, n_packets=6, n_bytes=532, priority=1,in_port=1,dl_dst=26:0b:00:88:55:6e actions=output:3
+ cookie=0x0, duration=1.860s, table=0, n_packets=0, n_bytes=0, priority=2,in_port=3,dl_dst=0a:0a:00:00:00:01 actions=drop
+ cookie=0x0, duration=66.614s, table=0, n_packets=7, n_bytes=574, priority=1,in_port=3,dl_dst=0a:0a:00:00:00:01 actions=output:1
+
+7.
+
+mininet> AAh1 ping BAh1
+PING 10.10.10.1 (10.10.10.1) 56(84) bytes of data.
+From 10.1.1.1 icmp_seq=9 Destination Host Unreachable
+From 10.1.1.1 icmp_seq=10 Destination Host Unreachable
+From 10.1.1.1 icmp_seq=11 Destination Host Unreachable
+From 10.1.1.1 icmp_seq=12 Destination Host Unreachable
+From 10.1.1.1 icmp_seq=13 Destination Host Unreachable
+From 10.1.1.1 icmp_seq=14 Destination Host Unreachable
+From 10.1.1.1 icmp_seq=15 Destination Host Unreachable
+From 10.1.1.1 icmp_seq=16 Destination Host Unreachable
+From 10.1.1.1 icmp_seq=17 Destination Host Unreachable
+^C
+--- 10.10.10.1 ping statistics ---
+19 packets transmitted, 0 received, +9 errors, 100% packet loss, time 18072ms
+
+8.
+
+is455@adminuser-VirtualBox:~$ sudo ovs-ofctl -O Openflow13 del-flows s1 in_port=3,dl_dst=0a:0a:00:00:00:01
+
+9.
+
+cis455@adminuser-VirtualBox:~$ sudo ovs-ofctl -O Openflow13 dump-flows s1
+OFPST_FLOW reply (OF1.3) (xid=0x2):
+ cookie=0x0, duration=775.857s, table=0, n_packets=1998, n_bytes=379485, priority=0 actions=CONTROLLER:65535
+ cookie=0x0, duration=493.381s, table=0, n_packets=17, n_bytes=1442, priority=1,in_port=1,dl_dst=26:0b:00:88:55:6e actions=output:3
+
+
+10.
+
+mininet> AAh1 ping BAh1
+PING 10.10.10.1 (10.10.10.1) 56(84) bytes of data.
+64 bytes from 10.10.10.1: icmp_seq=1 ttl=64 time=50.3 ms
+64 bytes from 10.10.10.1: icmp_seq=2 ttl=64 time=0.181 ms
+64 bytes from 10.10.10.1: icmp_seq=3 ttl=64 time=0.178 ms
+^C
+--- 10.10.10.1 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+rtt min/avg/max/mdev = 0.178/16.900/50.343/23.647 ms
+
+
+##### Ingress Policing Policy
+
+2.
+
+mininet> BAh1 iperf -s &
+------------------------------------------------------------
+Server listening on TCP port 5001
+TCP window size: 85.3 KByte (default)
+------------------------------------------------------------
+mininet> AAh1 iperf -c BAh1
+------------------------------------------------------------
+Client connecting to 10.10.10.1, TCP port 5001
+TCP window size: 85.3 KByte (default)
+------------------------------------------------------------
+[  3] local 10.1.1.1 port 58201 connected with 10.10.10.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.0 sec  1.63 GBytes  1.40 Gbits/sec
+
+3.
+
+cis455@adminuser-VirtualBox:~$ sudo ovs-vsctl list interface s1-eth1
+_uuid               : e10c53af-f6aa-4afe-baab-6c869163d0eb
+admin_state         : up
+bfd                 : {}
+bfd_status          : {}
+cfm_fault           : []
+cfm_fault_status    : []
+cfm_flap_count      : []
+cfm_health          : []
+cfm_mpid            : []
+cfm_remote_mpids    : []
+cfm_remote_opstate  : []
+duplex              : full
+external_ids        : {}
+ifindex             : 90
+ingress_policing_burst: 0
+ingress_policing_rate: 0
+lacp_current        : []
+link_resets         : 0
+link_speed          : 10000000000
+link_state          : up
+mac                 : []
+mac_in_use          : "aa:40:5b:ff:a7:2c"
+mtu                 : 1500
+name                : "s1-eth1"
+ofport              : 1
+ofport_request      : 1
+options             : {}
+other_config        : {}
+statistics          : {collisions=0, rx_bytes=1754570680, rx_crc_err=0, rx_dropped=0, rx_errors=0, rx_frame_err=0, rx_over_err=0, rx_packets=44383, tx_bytes=1916571, tx_dropped=0, tx_errors=0, tx_packets=19523}
+status              : {driver_name=veth, driver_version="1.0", firmware_version=""}
+type                : ""
+
+4.
+
+is455@adminuser-VirtualBox:~$ sudo ovs-vsctl set interface s1-eth1 ingress_policing_burst=100
+cis455@adminuser-VirtualBox:~$ sudo ovs-vsctl set interface s1-eth1 ingress_policing_rate=40
+
+5.
+
+cis455@adminuser-VirtualBox:~$ sudo ovs-vsctl list interface s1-eth1
+_uuid               : e10c53af-f6aa-4afe-baab-6c869163d0eb
+admin_state         : up
+bfd                 : {}
+bfd_status          : {}
+cfm_fault           : []
+cfm_fault_status    : []
+cfm_flap_count      : []
+cfm_health          : []
+cfm_mpid            : []
+cfm_remote_mpids    : []
+cfm_remote_opstate  : []
+duplex              : full
+external_ids        : {}
+ifindex             : 90
+ingress_policing_burst: 100
+ingress_policing_rate: 40
+lacp_current        : []
+link_resets         : 0
+link_speed          : 10000000000
+link_state          : up
+mac                 : []
+mac_in_use          : "aa:40:5b:ff:a7:2c"
+mtu                 : 1500
+name                : "s1-eth1"
+ofport              : 1
+ofport_request      : 1
+options             : {}
+other_config        : {}
+statistics          : {collisions=0, rx_bytes=1754609038, rx_crc_err=0, rx_dropped=0, rx_errors=0, rx_frame_err=0, rx_over_err=0, rx_packets=44584, tx_bytes=2108168, tx_dropped=0, tx_errors=0, tx_packets=20525}
+status              : {driver_name=veth, driver_version="1.0", firmware_version=""}
+type                : ""
+
+6.
+
+mininet> AAh1 iperf -c BAh1
+------------------------------------------------------------
+Client connecting to 10.10.10.1, TCP port 5001
+TCP window size: 85.3 KByte (default)
+------------------------------------------------------------
+[  3] local 10.1.1.1 port 58202 connected with 10.10.10.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-64.7 sec   512 KBytes  64.8 Kbits/sec
+
+7.
+
+Set to 0 with commands from 4
+
+8.
+
+net> AAh1 iperf -c BAh1
+------------------------------------------------------------
+Client connecting to 10.10.10.1, TCP port 5001
+TCP window size: 91.9 KByte (default)
+------------------------------------------------------------
+[  3] local 10.1.1.1 port 58204 connected with 10.10.10.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.0 sec  2.59 GBytes  2.22 Gbits/sec
+
+
+################
+# QOS
+################
+
+2. See above
+
+3.
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl -- set Port s1-eth3 qos=@newqos \
+> -- --id=@newqos create QoS type=linux-htb queues=0=@q0 \
+> -- --id=@q0   create   Queue other-config:max-rate=50000
+ba4cccdc-13f2-45fc-8edc-f866ee4ca153
+b1d4d956-9928-47b2-b579-115a4f176740
+
+
+4.
+
+
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl list qos
+_uuid               : ba4cccdc-13f2-45fc-8edc-f866ee4ca153
+external_ids        : {}
+other_config        : {}
+queues              : {0=b1d4d956-9928-47b2-b579-115a4f176740}
+type                : linux-htb
+
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl list queue b1d4d956-9928-47b2-b579-115a4f176740
+_uuid               : b1d4d956-9928-47b2-b579-115a4f176740
+dscp                : []
+external_ids        : {}
+other_config        : {max-rate="50000"}
+
+4c ??????????????????????????????
+
+probably
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-ofctl dump-flows s1
+NXST_FLOW reply (xid=0x4):
+ cookie=0x0, duration=7814.126s, table=0, n_packets=15581, n_bytes=2984273, idle_age=1, priority=0 actions=CONTROLLER:65535
+ cookie=0x0, duration=7531.650s, table=0, n_packets=206851, n_bytes=7081144222, idle_age=4393, priority=1,in_port=1,dl_dst=26:0b:00:88:55:6e actions=output:3
+ cookie=0x0, duration=6969.802s, table=0, n_packets=100362, n_bytes=6635660, idle_age=4393, priority=1,in_port=3,dl_dst=0a:0a:00:00:00:01 actions=output:1
+ cookie=0x0, duration=6569.262s, table=0, n_packets=2, n_bytes=116, idle_age=6564, priority=1,in_port=1,dl_dst=2a:83:a0:fc:3e:38 actions=output:3
+
+
+5.
+
+sudo ovs-ofctl add-flow s1 in_port=1,dl_src=0a:0a:00:00:00:01,dl_dst=26:0b:00:88:55:6e,actions=set_queue:0,normal
+
+
+6.
+
+mininet> AAh1 iperf -c BAh1
+------------------------------------------------------------
+Client connecting to 10.10.10.1, TCP port 5001
+TCP window size: 85.3 KByte (default)
+------------------------------------------------------------
+[  3] local 10.1.1.1 port 58209 connected with 10.10.10.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-36.0 sec   384 KBytes  87.4 Kbits/sec
+
+7.
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl -- clear port s1-eth3 qos
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl -- --all destroy QoS -- --all destroy Queue
+
+8.
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl list qos
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl list queue
+
+---- Iperf after deletion
+
+mininet> AAh1 iperf -c BAh1
+------------------------------------------------------------
+Client connecting to 10.10.10.1, TCP port 5001
+TCP window size: 85.3 KByte (default)
+------------------------------------------------------------
+[  3] local 10.1.1.1 port 58210 connected with 10.10.10.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.0 sec  3.84 GBytes  3.30 Gbits/sec
+
