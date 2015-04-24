@@ -13,6 +13,7 @@ import subprocess
 
 # Receiving requests and passing them to a controller method
 class RequestHandler(SocketServer.BaseRequestHandler):
+
     # Set to the handle method in the controller thread
     handler = None
 
@@ -26,6 +27,7 @@ class Server(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 # Client for sending messages to a server
 class Client:
+
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
@@ -43,11 +45,12 @@ class Client:
         thread = threading.Thread(target=do)
         thread.daemon = True
         thread.start()
-
+        
 class SimpleMonitor(simple_switch_13.SimpleSwitch13):
+    
     attackPaths = {}
     attackers = []
-    sustainedAttacks, sustainedNoAttacks = 0, 0
+    sustainedAttacks, sustainedNoAttacks = 0, 0 
     ingressApplied = {"s1": [False, False, False],
                       "s11": [False, False, False],
                       "s12": [False, False, False],
@@ -59,7 +62,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     ATTACK_THRESHOLD = 5000
     PEACE_THRESHOLD = 40
     SUSTAINED_COUNT = 5
-    rates = {"s1": [0, 0, 0], "s11": [0, 0, 0], "s12": [0, 0, 0], "s2": [0, 0, 0], "s21": [0, 0, 0], "s22": [0, 0, 0]}
+    rates = {"s1": [0,0,0], "s11": [0,0,0], "s12": [0,0,0], "s2": [0,0,0], "s21": [0,0,0], "s22": [0,0,0]}
 
     def __init__(self, *args, **kwargs):
         # Monitoring
@@ -76,9 +79,9 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         # Set of hosts in other domain to which we were reported an attack
         self.other_victims = set()
 
-        # ##########################################
-        # Server Code
-        ###########################################
+###########################################
+# Server Code
+###########################################
 
         self.msgCount = 0
         self.lock = threading.Lock()
@@ -97,24 +100,23 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         # Send some test messages
         self.client = Client(ip_other, port_other)
 
-        def handlePushbackMessage(self, data):
-            self.lock.acquire()
-            print "Received pushback message:", data
-            victim = data.strip()[len("Pushback attack to "):]
-            try:
-                # HACK
-                self.other_victims.add("s2")
+    def handlePushbackMessage(self, data):
+        self.lock.acquire()
+        print "Received pushback message:", data
+        victim = data.strip()[len("Pushback attack to "):]
+        try:
+            # HACK
+            self.other_victims.add("s2")
             # This does (obviously) not work at the moment
             # because attack tables should carry victim information by id
             #self.other_victims.add(victim)
             #print "Victim is", victim
-            finally:
-                self.lock.release()
+        finally:
+            self.lock.release()
 
-            ###########################################
-            # Monitoring Code
-            ###########################################
-
+###########################################
+# Monitoring Code
+###########################################
     @set_ev_cls(ofp_event.EventOFPStateChange,
                 [MAIN_DISPATCHER, DEAD_DISPATCHER])
     def _state_change_handler(self, ev):
@@ -148,9 +150,9 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
         print "----------------------------------------------------------"
-
+        
         body = ev.msg.body
-        dpids = {0x1: "s1",
+        dpids = {0x1: "s1", 
                  0xb: "s11",
                  0xc: "s12",
                  0x2: "s2",
@@ -169,7 +171,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         # XXX Should be about this way, see HACK below
         # victims = set(self.other_victims)
         # self.other_victims = set()
-
+        
         # List of all datapaths on which we suspect an attack to happen
         dataPathAttacks = []
         dpid = int(ev.msg.datapath.id)
@@ -184,8 +186,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                 cnt = self.flows.get(key, 0)
                 rate = self.bitrate(stat.byte_count - cnt)
             self.flows[key] = stat.byte_count
-            print "FLOW Datapath %016x In Port %8x Eth Dst %17s Out Port %8x Bitrate %f" % (
-            dpid, in_port, eth_dst, stat.instructions[0].actions[0].port, rate)
+            print "FLOW Datapath %016x In Port %8x Eth Dst %17s Out Port %8x Bitrate %f" % (dpid, in_port, eth_dst, stat.instructions[0].actions[0].port, rate)
             self.rates["s" + str(dpid)][in_port - 1] = rate
             out_port = stat.instructions[0].actions[0].port
             if rate > SimpleMonitor.ATTACK_THRESHOLD:
@@ -194,30 +195,30 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                 victims.add(victim)
                 inFrom, outTo = portMaps[dpids[dpid]][in_port - 1], portMaps[dpids[dpid]][out_port - 1]
                 dataPathAttacks.append((inFrom, outTo))
-
+        
         # Set of victims for which we suspect the attack to originate from the other domain
         pushbacks = set()
-
+        
         # XXX Hack
         if self.other_victims:
             victims = set(self.other_victims)
-        # self.other_victims = set()
+            #self.other_victims = set()
         else:
             # Should be this way
-            victims = victims.intersection({'0a:0a:00:00:00:01', '0a:0a:00:00:00:02'})
-
+            victims = victims.intersection(set(['0a:0a:00:00:00:01','0a:0a:00:00:00:02']))
+        
         for victim in victims:
             victimHost, victimSwitch, victimPort = self.getVictim(victim)
             print "Victim: MAC %s Host %s Switch %s Port %s" % (victim, victimHost, victimSwitch, victimPort)
             attackers = self.getAttackers(victimHost, victimSwitch)
-            # attackers = []
+            #attackers = []
             print "Attackers: %s" % attackers
             self.sustainedNoAttacks = 0
 
             if not attackers:
                 # No attackers identified, thus assume it's originating in the other domain
                 pushbacks.add(victim)
-            #print "No attackers", attackers
+                #print "No attackers", attackers
             elif attackers == self.attackers:
                 self.sustainedAttacks += 1
                 print "Sustained Attack Count %s" % self.sustainedAttacks
@@ -229,15 +230,13 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             # Should remove policies for foreign nodes on message receipt? Otherwise, check that flow to VICTIM(s)
             # is not sustained anymore.
             if self.sustainedAttacks > SimpleMonitor.SUSTAINED_COUNT or self.other_victims:
-                print "Applying ingress filters to %s" % self.attackers
+                print "Applying ingress filters to %s" % self.attackers 
                 for attacker in self.attackers:
                     attackerSwitch, attackerPort = self.getSwitch(attacker)
-                    subprocess.call(["sudo", "ovs-vsctl", "set", "interface", attackerSwitch + "-eth" + attackerPort,
-                                     "ingress_policing_burst=100"])
-                    subprocess.call(["sudo", "ovs-vsctl", "set", "interface", attackerSwitch + "-eth" + attackerPort,
-                                     "ingress_policing_rate=40"])
+                    subprocess.call(["sudo", "ovs-vsctl", "set", "interface", attackerSwitch + "-eth" + attackerPort, "ingress_policing_burst=100"])
+                    subprocess.call(["sudo", "ovs-vsctl", "set", "interface", attackerSwitch + "-eth" + attackerPort, "ingress_policing_rate=40"])
                     self.ingressApplied[attackerSwitch][int(attackerPort) - 1] = True
-
+        
         self.other_victims = set()
         # XXX Add sustained count
         if pushbacks == self.pushbacks:
@@ -245,26 +244,23 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             for victim in pushbacks:
                 self.client.send("Pushback attack to " + victim)
         else:
-            self.pushbacks = pushbacks
+           self.pushbacks = pushbacks
 
-        if len(victims) == 0:  # If there are no victims, for a sustained duration, should try removing the ingress
+        if len(victims) == 0: # If there are no victims, for a sustained duration, should try removing the ingress
             self.sustainedAttacks = 0
             self.sustainedNoAttacks += 1
             print "Sustained Peace Count %s" % self.sustainedNoAttacks
             if self.sustainedNoAttacks > SimpleMonitor.SUSTAINED_COUNT:
-                # # Use rates to determine if B/W has gone < 50% or so
+                ## Use rates to determine if B/W has gone < 50% or so
                 for switch in self.ingressApplied:  # Iterate through all switches/ports
                     for port in range(len(self.ingressApplied[switch])):
                         if self.ingressApplied[switch][port] == False: continue  # If ingress is not applied, skip
-                        if self.rates[switch][
-                            port] > SimpleMonitor.PEACE_THRESHOLD: continue  # If the in_rate of that switch/port is > ingress limit, skip
-                        attacker = portMaps[switch][port]  # redundant, too lazy
+                        if self.rates[switch][port] > SimpleMonitor.PEACE_THRESHOLD: continue  # If the in_rate of that switch/port is > ingress limit, skip
+                        attacker = portMaps[switch][port]   # redundant, too lazy
                         attackerSwitch, attackerPort = self.getSwitch(attacker)
                         print "Removing ingress filters on %s at port %s" % (attackerSwitch, attackerPort)
-                        subprocess.call(["sudo", "ovs-vsctl", "set", "interface", switch + "-eth" + str(port + 1),
-                                         "ingress_policing_burst=0"])
-                        subprocess.call(["sudo", "ovs-vsctl", "set", "interface", switch + "-eth" + str(port + 1),
-                                         "ingress_policing_rate=0"])
+                        subprocess.call(["sudo", "ovs-vsctl", "set", "interface", switch + "-eth" + str(port + 1), "ingress_policing_burst=0"])
+                        subprocess.call(["sudo", "ovs-vsctl", "set", "interface", switch + "-eth" + str(port + 1), "ingress_policing_rate=0"])
                         self.ingressApplied[switch][port] = False
                         ## XXX Keep?
                         self.sustainedNoAttacks = 0
@@ -273,7 +269,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
         self.attackPaths[dpids[dpid]] = dataPathAttacks
         print "----------------------------------------------------------"
-
+        
 
     def getVictim(self, victim):
         # XXX Bit hacky
@@ -290,7 +286,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         else:
             victimSwitch += "2"
         victimPort = victimHost[3]
-
+        
         return victimHost, victimSwitch, victimPort
 
     def getAttackers(self, victim, victimSwitch):
@@ -324,16 +320,16 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
     @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
     def _port_stats_reply_handler(self, ev):
-        # print "----------------------------------------------------------"
+        #print "----------------------------------------------------------"
         body = ev.msg.body
 
         for stat in sorted(body, key=attrgetter('port_no')):
             key = (ev.msg.datapath.id, stat.port_no)
-            cnt1, cnt2 = self.ports.get(key, (0, 0))
+            cnt1, cnt2 = self.ports.get(key, (0,0))
             rx_bitrate = self.bitrate(stat.rx_bytes - cnt1)
             tx_bitrate = self.bitrate(stat.tx_bytes - cnt2)
             self.ports[key] = (stat.rx_bytes, stat.tx_bytes)
-            #    print "Datapath %d Port %d RX Bitrate %f TX Bitrate %f"\
-            #          % (ev.msg.datapath.id,stat.port_no,rx_bitrate, tx_bitrate)
+        #    print "Datapath %d Port %d RX Bitrate %f TX Bitrate %f"\
+        #          % (ev.msg.datapath.id,stat.port_no,rx_bitrate, tx_bitrate)
 
-            #print "----------------------------------------------------------"
+        #print "----------------------------------------------------------"
