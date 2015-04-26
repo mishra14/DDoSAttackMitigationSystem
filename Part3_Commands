@@ -219,6 +219,12 @@ TCP window size: 91.9 KByte (default)
 cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl -- set Port s1-eth3 qos=@newqos \
 > -- --id=@newqos create QoS type=linux-htb queues=0=@q0 \
 > -- --id=@q0   create   Queue other-config:max-rate=50000
+
+UPDATED TO:
+
+cis455@adminuser-VirtualBox:~/cis553$ sudo ovs-vsctl -O openflow13 -- set Port s1-eth3 qos=@newqos \
+> -- --id=@newqos create QoS type=linux-htb queues=0=@q0 \
+> -- --id=@q0   create   Queue other-config:max-rate=50000
 ba4cccdc-13f2-45fc-8edc-f866ee4ca153
 b1d4d956-9928-47b2-b579-115a4f176740
 
@@ -256,6 +262,10 @@ NXST_FLOW reply (xid=0x4):
 5.
 
 sudo ovs-ofctl add-flow s1 in_port=1,dl_src=0a:0a:00:00:00:01,dl_dst=26:0b:00:88:55:6e,actions=set_queue:0,normal
+
+UPDATED TO:
+
+sudo ovs-ofctl -O openflow13 add-flow s1 in_port=1,dl_src=0a:0a:00:00:00:01,dl_dst=26:0b:00:88:55:6e,actions=set_queue:0,normal
 
 
 6.
