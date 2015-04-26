@@ -69,7 +69,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     QUERY_INTERVAL = 2
     # Bandwith threshold in Kbit/s for assuming an attack
     # on a port
-    ATTACK_THRESHOLD = 5000
+    ATTACK_THRESHOLD = 2000
     # Bandwith threshold in Kbit/s for assuming that the
     # attack has stopped after applying an ingress policy
     PEACE_THRESHOLD = 40
@@ -96,6 +96,14 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                                "s21": [False, False, False],
                                "s22": [False, False, False],
                                "s2": [False, False, False]}
+
+	# Sustained no attack count for switch/port combinations
+        self.no_attacks = {"s1": [{}, {}, {}], 
+                      "s11": [{}, {}, {}], 
+                      "s12": [{}, {}, {}], 
+                      "s2": [{}, {}, {}], 
+                      "s21": [{}, {}, {}], 
+                      "s22": [{}, {}, {}]}
 
         # XXX Add comment
         self.rates = {"s1": [{}, {}, {}], 
@@ -258,6 +266,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
             # Save the bandwith calculated for this flow
             self.rates["s" + str(dpid)][in_port - 1][str(eth_dst)] = rate
+	    
 
             # If we find the bandwith for this flow to be higher than
             # the provisioned limit, we mark the corresponding
@@ -293,7 +302,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         self.checkForIngressRemoval(victims)  # If there are no victims, for a sustained duration, try remove ingress policies
 
         if SimpleMonitor.REPORT_STATS:
-            print "---------------------------------------------------------"
+            print "--------------------------------------------------------"
         
 
     # Handle pushback requests issued by the controller in the other domain
