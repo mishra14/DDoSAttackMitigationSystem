@@ -1,3 +1,30 @@
-To run the controllers, just like last time - 
-ryu-manager --ofp-tcp-listen-port 6633 SimpleMonitorwithIngress1.py
-ryu-manager --ofp-tcp-listen-port 6634 SimpleMonitorwithIngress2.py
+Group E Members - 
+Ankit Mishra - mankit
+Gouthaman Kumarappan - goku
+Simon Wimmer - wimmers
+
+
+instructions- 
+1. Run custom controller A
+sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6633 ryu/ryu/app/SimpleMonitorwithIngress1.py
+
+2. Run custom controller B
+sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6634 ryu/ryu/app/SimpleMonitorwithIngress2.py
+
+3. Run the custom topology
+sudo python mininet/custom/customTopo.py
+
+4. To start inter domain attack
+BBh1 hping3 --flood --udp AAh1 &
+BBh1 hping3 --flood --udp AAh2 &
+BAh1 hping3 --flood --udp AAh1 &
+BAh1 hping3 --flood --udp AAh2 &
+
+5. To start intra domain attack 
+
+ABh1 hping3 --flood --udp AAh1 &
+ABh1 hping3 --flood --udp AAh2 &
+ABh2 hping3 --flood --udp AAh1 &
+ABh2 hping3 --flood --udp AAh2 &
+
+6. Monitor the controller A and B consoles to see the results and the effective bandwidth on the links.
