@@ -6,10 +6,10 @@ Simon Wimmer - wimmers
 
 instructions- 
 1. Run custom controller A
-sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6633 ryu/ryu/app/simple_switch_13.py
+sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6633 ryu/ryu/app/SimpleMonitorwithIngress1.py
 
 2. Run custom controller B
-sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6634 ryu/ryu/app/simple_switch_13.py
+sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6634 ryu/ryu/app/SimpleMonitorwithIngress2.py
 
 3. Run the custom topology
 sudo python customTopo.py
