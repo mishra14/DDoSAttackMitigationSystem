@@ -69,10 +69,10 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     QUERY_INTERVAL = 2
     # Bandwith threshold in Kbit/s for assuming an attack
     # on a port
-    ATTACK_THRESHOLD = 5000
+    ATTACK_THRESHOLD = 4000
     # Bandwith threshold in Kbit/s for assuming that the
     # attack has stopped after applying an ingress policy
-    PEACE_THRESHOLD = 40
+    PEACE_THRESHOLD = 60
     # Number of repeated poll statistics measurements to 
     # assume that the judgement on either "attack over"
     # "host under DDoS attack" is correct.
@@ -85,10 +85,10 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         # Monitoring
         super(SimpleMonitor, self).__init__(*args, **kwargs)
 
-	# Set of currently known (assumed) attackers
+	    # Set of currently known (assumed) attackers
         self.attackers = set()
         # Sustained counts for the above judgements
-        self.sustainedAttacks, self.sustainedNoAttacks, self.sustainedPushbackRequests = 0, 0, 0
+        self.sustainedAttacks, self.sustainedPushbackRequests = 0, 0
         # Indicates for each switch to which of its ports we applied an ingress policy
         self.ingressApplied = {"s1": [False, False, False],
                                "s11": [False, False, False],
@@ -96,6 +96,14 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                                "s21": [False, False, False],
                                "s22": [False, False, False],
                                "s2": [False, False, False]}
+
+	# Sustained no attack count for switch/port combinations
+        self.noAttackCounts = {"s1":  [0] * 3,
+                               "s11": [0] * 3,
+                               "s12": [0] * 3,
+                               "s21": [0] * 3,
+                               "s22": [0] * 3,
+                               "s2":  [0] * 3}
 
         # XXX Add comment
         self.rates = {"s1": [{}, {}, {}], 
@@ -232,9 +240,10 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         body = ev.msg.body
         # Get id of datapath for which statistics are reported as int
         dpid = int(ev.msg.datapath.id)
+        switch = self.dpids[dpid]
 
         if SimpleMonitor.REPORT_STATS:
-            print "--------------- Flow stats for switch", self.dpids[dpid], "---------------"
+            print "-------------- Flow stats for switch", switch, "---------------"
 
         # Iterate through all statistics reported for the flow
         for stat in sorted([flow for flow in body if flow.priority == 1],
@@ -257,27 +266,37 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                 print "In Port %8x Eth Dst %17s Out Port %8x Bitrate %f" % (in_port, eth_dst, out_port, rate)
 
             # Save the bandwith calculated for this flow
-            self.rates["s" + str(dpid)][in_port - 1][str(eth_dst)] = rate
+            self.rates[switch][in_port - 1][str(eth_dst)] = rate
 
             # If we find the bandwith for this flow to be higher than
             # the provisioned limit, we mark the corresponding
             # host as potential vicitim
             if rate > SimpleMonitor.ATTACK_THRESHOLD:
+                self.noAttackCounts[switch][in_port - 1] = 0
                 victim = str(eth_dst)
                 if victim in domainHosts:  # if not in domain, ignore it. wait for a pushback request if it's that important
                     victims.add(victim)
+
+        # Calculate no sustained attack counts
+        for port in range(len(self.ingressApplied[switch])):
+            if not self.ingressApplied[switch][port]:
+                continue  # If ingress is not applied, skip
+
+            # If rate for all flows on the links is below safe level,
+            # increase the sustained no attack count for this link
+            if all(x <= SimpleMonitor.PEACE_THRESHOLD for x in self.rates[switch][port].values()):
+                self.noAttackCounts[switch][port] += 1
+            else:
+                self.noAttackCounts[switch][port] = 0
         
         victims = victims.intersection({'0a:0a:00:00:00:01', '0a:0a:00:00:00:02'})  # only consider the protected hosts
         
-        # XXX Clean
-        #print "OTHER VICTIMS %s" % self.other_victims
         # Handle pushback requests from the other host
         self.dealWithPushbackRequests()
 
         # Identify the set of victims attacked by hosts located in the other domain
         # and directly apply policies to the attackers in the local domain
         pushbacks = self.dealWithAttackers(victims)
-        #print "PUSHBACKS %s" % pushbacks
         
         if pushbacks == self.pushbacks and len(pushbacks) > 0:            # Send pushback messages
             self.sustainedPushbackRequests += 1
@@ -293,7 +312,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         self.checkForIngressRemoval(victims)  # If there are no victims, for a sustained duration, try remove ingress policies
 
         if SimpleMonitor.REPORT_STATS:
-            print "---------------------------------------------------------"
+            print "--------------------------------------------------------"
         
 
     # Handle pushback requests issued by the controller in the other domain
@@ -353,27 +372,16 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         
     # Check if the ingress policy should be removed for any port
     def checkForIngressRemoval(self, victims):
-        # Only applicable if nobody is under an active attack
-        if len(victims) == 0:
-            self.sustainedAttacks = 0
-            self.sustainedNoAttacks += 1
-            logging.debug("Sustained Peace Count %s" % self.sustainedNoAttacks)
-            # If the confidence count for no ongoing attack exceeds the provisioned limit
-            # check if the bandwith consumption on one of the rate-limited links
-            # dropped below a "safe" level and remove ingress policy
-            if self.sustainedNoAttacks > SimpleMonitor.SUSTAINED_COUNT:
-                for switch in self.ingressApplied:  # Iterate through all switches/ports
-                    for port in range(len(self.ingressApplied[switch])):
-                        if not self.ingressApplied[switch][port]:
-                            continue  # If ingress is not applied, skip
-
-                        # If rate for all flows on the links is below safe level,
-                        # remove the ingress policy
-                        if all(x <= SimpleMonitor.PEACE_THRESHOLD for x in self.rates[switch][port].values()):
-                            self.removeIngress(self.portMaps[switch][port])
-                self.sustainedNoAttacks = 0  # this is there because need to cap the count at some point
-        else:
-            self.sustainedNoAttacks = 0
+        self.sustainedAttacks = 0
+        # If the confidence count for no ongoing attack exceeds the provisioned limit
+        # check if the bandwith consumption on one of the rate-limited links
+        # dropped below a "safe" level and remove ingress policy
+        for switch in self.ingressApplied:  # Iterate through all switches/ports
+            for port in range(len(self.ingressApplied[switch])):
+                # If rate for all flows on the links for this port have been below a safe level
+                # for the last couple of statistic readings, remove the ingress policy
+                if self.noAttackCounts[switch][port] >= self.SUSTAINED_COUNT and self.ingressApplied[switch][port]:
+                    self.removeIngress(self.portMaps[switch][port])
 
     # 
     def applyIngress(self, attacker, shouldApply=True):
@@ -383,10 +391,11 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
         ingressPolicingBurst, ingressPolicingRate = "ingress_policing_burst=0", "ingress_policing_rate=0"
         if shouldApply:
-            print "Applying ingress filters on %s, on switch %s at port %s" % (attacker, attackerSwitch, attackerPort)
+            self.noAttackCounts[attackerSwitch][int(attackerPort) - 1] = 0
+            logging.info("Applying ingress filters on %s, on switch %s at port %s" % (attacker, attackerSwitch, attackerPort))
             ingressPolicingBurst, ingressPolicingRate = "ingress_policing_burst=100", "ingress_policing_rate=40"
         else:
-            print "Removing ingress filters on %s, on switch %s at port %s" % (attacker, attackerSwitch, attackerPort)
+            logging.info("Removing ingress filters on %s, on switch %s at port %s" % (attacker, attackerSwitch, attackerPort))
 
         subprocess.call(["sudo", "ovs-vsctl", "set", "interface", attackerSwitch + "-eth" + attackerPort, ingressPolicingBurst])
         subprocess.call(["sudo", "ovs-vsctl", "set", "interface", attackerSwitch + "-eth" + attackerPort, ingressPolicingRate])
