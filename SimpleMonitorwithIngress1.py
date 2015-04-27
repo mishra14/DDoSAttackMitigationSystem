@@ -354,12 +354,12 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         
         # Increase the count for confidence in a suspected attack
         # by the identifed attacker set if applicable
-        if attackers == self.attackers and len(attackers) > 0:
+        if attackers == self.attackers and attackers:
             self.sustainedAttacks += 1
             logging.debug("Sustained Attack Count %s" % self.sustainedAttacks)
 
         else:
-            # self.sustainedAttacks = 0 XXX Keep?
+            self.sustainedAttacks = 0
             self.attackers = attackers
 
         # If we have exceeded the confidence count for the local attacker
@@ -372,7 +372,6 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         
     # Check if the ingress policy should be removed for any port
     def checkForIngressRemoval(self, victims):
-        self.sustainedAttacks = 0
         # If the confidence count for no ongoing attack exceeds the provisioned limit
         # check if the bandwith consumption on one of the rate-limited links
         # dropped below a "safe" level and remove ingress policy
