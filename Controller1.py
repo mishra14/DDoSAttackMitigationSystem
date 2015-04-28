@@ -357,7 +357,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         
         # Increase the count for confidence in a suspected attack
         # by the identifed attacker set if applicable
-        if attackers == self.attackers and attackers:
+        if attackers:
             self.sustainedAttacks += 1
             logging.debug("Sustained Attack Count %s" % self.sustainedAttacks)
 
