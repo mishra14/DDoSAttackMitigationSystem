@@ -70,7 +70,7 @@ def createNetworkTopology():
     sBB.start([cB])
 
     info('\n*** Running pingall\n')
-    #net.pingAll()
+    net.pingAll()
 
     info('***  Running iperf\n')
     # net.iperf(hosts=[AAh1, ABh1])
@@ -78,10 +78,10 @@ def createNetworkTopology():
     # net.iperf(hosts=[AAh1, BBh1])
 
     #info('*** Running CLI\n')
-    #CLI(net)
-    info('*** Running DDos\n')
-    ABh1.cmd("hping3 --flood --udp 10.1.1.1 &")
-    BAh1.cmd("hping3 --flood --udp 10.1.1.1 ")
+    info('*** Running DDoS\n')
+    # ABh1.cmd("hping3 --flood --udp 10.1.1.1 &")
+    # BAh1.cmd("hping3 --flood --udp 10.1.1.1 &")
+    CLI(net)
     info('*** Stopping network')
     net.stop()
 
