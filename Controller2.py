@@ -269,7 +269,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             self.flow_byte_counts[key] = stat.byte_count
             if SimpleMonitor.REPORT_STATS:
                 print "In Port %8x Eth Dst %17s Out Port %8x Bitrate %f" % (in_port, eth_dst, out_port, rate)
-            cvsRates[switch + "-eth" + str(in_port)] += rate
+            csvRates[switch + "-eth" + str(in_port)] += rate
             # Save the bandwith calculated for this flow
             self.rates[switch][in_port - 1][str(eth_dst)] = rate
 
