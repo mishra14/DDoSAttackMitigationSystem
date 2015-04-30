@@ -6,11 +6,18 @@ Simon Wimmer - wimmers
 
 instructions- 
 1. Run custom controller 1 (for domain A)
-sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6633 ryu/ryu/app/Controller1.py
+sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6633 ryu/ryu/app/Controller1.py | tee log1.txt
 
 2. Run custom controller 2 (for domain B)
-sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6634 ryu/ryu/app/Controller2.py
+sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6634 ryu/ryu/app/Controller2.py | tee log2.txt
 
+Note - The above 2 commands display the controller outputs on the console and also log them to log1.txt and log2.txt
+	   In order to not log the outputs, please use the following commands - 
+
+sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6633 ryu/ryu/app/Controller1.py
+
+sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6634 ryu/ryu/app/Controller2.py
+	   
 3. Run the custom topology
 sudo python customTopology.py
 

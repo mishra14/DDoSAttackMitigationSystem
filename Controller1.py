@@ -180,7 +180,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # Handler receipt of a pushback message
     def handlePushbackMessage(self, data):
         victim = data.strip()[len("Pushback attack to "):]
-        logging.info("Received pushback message for victim: %s" % victim)
+        print("Received pushback message for victim: %s" % victim)
         # Avoid race conditions for pushback messages
         self.lock.acquire()
         try:
@@ -330,7 +330,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         for victim in victims:
             # Identify attackers for the victims
             victimAttackers = self.getAttackers(victim)
-            logging.info("Responding to pushback request, applying ingress on %s to relieve %s" % (victimAttackers, victim))
+            print("Responding to pushback request, applying ingress on %s to relieve %s" % (victimAttackers, victim))
             # Apply an ingress policy to each attacker
             for attacker in victimAttackers:
                 self.applyIngress(attacker)
@@ -344,9 +344,9 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         attackers = set()
         for victim in victims:
             victimHost, victimSwitch, victimPort = self.getVictim(victim)
-            logging.info("Identified victim: MAC %s Host %s Switch %s Port %s" % (victim, victimHost, victimSwitch, victimPort))
+            print("Identified victim: MAC %s Host %s Switch %s Port %s" % (victim, victimHost, victimSwitch, victimPort))
             victimAttackers = self.getAttackers(victim)
-            logging.info("Attackers for vicim %s: %s" % (victimAttackers, victimHost))
+            print("Attackers for vicim %s: %s" % (victimAttackers, victimHost))
             if not victimAttackers:
                 # No attackers identified, thus assume it's originating in the other domain
                 pushbacks.add(victim)
@@ -390,10 +390,10 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         ingressPolicingBurst, ingressPolicingRate = "ingress_policing_burst=0", "ingress_policing_rate=0"
         if shouldApply:
             self.noAttackCounts[attackerSwitch][int(attackerPort) - 1] = 0
-            logging.info("Applying ingress filters on %s, on switch %s at port %s" % (attacker, attackerSwitch, attackerPort))
+            print("Applying ingress filters on %s, on switch %s at port %s" % (attacker, attackerSwitch, attackerPort))
             ingressPolicingBurst, ingressPolicingRate = "ingress_policing_burst=100", "ingress_policing_rate=40"
         else:
-            logging.info("Removing ingress filters on %s, on switch %s at port %s" % (attacker, attackerSwitch, attackerPort))
+            print("Removing ingress filters on %s, on switch %s at port %s" % (attacker, attackerSwitch, attackerPort))
 
         subprocess.call(["sudo", "ovs-vsctl", "set", "interface", attackerSwitch + "-eth" + attackerPort, ingressPolicingBurst])
         subprocess.call(["sudo", "ovs-vsctl", "set", "interface", attackerSwitch + "-eth" + attackerPort, ingressPolicingRate])
