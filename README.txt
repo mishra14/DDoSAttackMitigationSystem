@@ -1,10 +1,12 @@
-Group E Members - 
-Ankit Mishra - mankit
-Gouthaman Kumarappan - goku
-Simon Wimmer - wimmers
+This repo is for a python based sdn controllers that can detect a DDoS attack on target hosts and mitigate the attack by limiting the bandwidth between the target and the attacker node.
+
+Team Members - 
+Ankit Mishra
+Gouthaman Kumarappan
+Simon Wimmer
 
 
-instructions- 
+Instructions- 
 1. Run custom controller 1 (for domain A)
 sudo python ./ryu/bin/ryu-manager --ofp-tcp-listen-port 6633 ryu/ryu/app/Controller1.py | tee log1.txt
 
