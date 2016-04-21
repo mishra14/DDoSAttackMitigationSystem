@@ -1,4 +1,5 @@
-This repo is for a python based sdn controllers that can detect a DDoS attack on target hosts and mitigate the attack by limiting the bandwidth between the target and the attacker node.
+This repo is for a python based sdn controllers that can detect a DDoS attack on target hosts.
+Further, the controllers can mitigate the attack by limiting the bandwidth between the target and the attacker node.
 
 Team Members - 
 Ankit Mishra
